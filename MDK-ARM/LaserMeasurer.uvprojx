@@ -411,11 +411,6 @@
               <FilePath>../Src/main.c</FilePath>
             </File>
             <File>
-              <FileName>platform.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Inc\platform.h</FilePath>
-            </File>
-            <File>
               <FileName>uart_debug.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\uart_debug.c</FilePath>
@@ -424,6 +419,11 @@
               <FileName>platform.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\platform.c</FilePath>
+            </File>
+            <File>
+              <FileName>platform.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Inc\platform.h</FilePath>
             </File>
           </Files>
         </Group>

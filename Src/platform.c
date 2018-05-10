@@ -8,6 +8,7 @@
 
 int continousRun = 0;
 int pllmod = 1;
+int avg = 1;
 
 float global_offset;
 
@@ -31,9 +32,10 @@ void PlatformInit(void)
 	LaserPower(LASER_POWER_LOW);
 	LaserEnable(1);
 	LaserSelect(LASER_INTERNAL);
-/*		
+
 	DelayMs(10);
 	printf("Adjusting PWM 1\r\n");
+	//HVPwmSetDuty(75);
 	AdjustHighVoltage();
 	
 	DelayMs(10);
@@ -56,15 +58,14 @@ void PlatformInit(void)
 	
 	//printf("0 0\r\n0 360\r\n");
 	
-	DelayMs(50);
-*/	
+	DelayMs(100);
+
 	WTFSignal();
 	
 	return;
 	
 }
 
-int avg = 1;
 
 void PlatformLoop(void)
 {
@@ -96,7 +97,7 @@ void InitPLL(PLL_Freq_t mod)
 					   SI5351_PLLBSRC_XTAL);
 		
 	Si5351_EnableOutputs(0x00);
-// 45 MHz, 10 kHz
+// 10 MHz, 10 kHz
 	if(mod == FREQ_50M_DFREQ_10K)
 	{
 		Si5351_ClkxConfig(0, SI5351_CLKx_ON |
@@ -282,25 +283,45 @@ void WTFSignal(void)
 	
 }
 
-void ADCDMATIM_Prepare(void)
+void ADCDMATIM_Prepare(uint8_t* address, int size)
 {
+	// Setup DMA
+	LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)address);
+	LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)&(ADC1->DR));
+	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, size);
+	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
 	
+	// Setup TIM
+	LL_TIM_SetCounter(TIM1, 0);
 }
 
 void ADCDMATIM_Start(void)
 {
-	
+	LL_ADC_REG_StartConversion(ADC1);
+	LL_TIM_EnableCounter(TIM1);
 }
 
 void ADCDMATIM_Stop(void)
 {
-	
+	LL_TIM_DisableCounter(TIM1);
+	LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_1);
+	LL_DMA_ClearFlag_TC1(DMA1);
+	LL_ADC_REG_StopConversion(ADC1);
+
 }
 
 void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length)
 {
+	ADCDMATIM_Prepare(arrADC, length);
+	
 	while(!GenVoltage());
 	while(GenVoltage());
+	ADCDMATIM_Start();
+	
+	while(!LL_DMA_IsActiveFlag_TC1(DMA1));
+	
+	ADCDMATIM_Stop();
+	
 }
 
 

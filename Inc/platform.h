@@ -29,7 +29,7 @@ typedef enum
 	FREQ_50M_DFREQ_100K
 } PLL_Freq_t;
 
-void ADCDMATIM_Prepare(void);
+void ADCDMATIM_Prepare(uint8_t* address, int size);
 void ADCDMATIM_Start(void);
 void ADCDMATIM_Stop(void);
 void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length);
