@@ -16,11 +16,10 @@ void PlatformInit(void)
 {	
 	DevicePower(1);
 	printf("Loading...\r\n");
-	DelayMs(5000);
+	DelayMs(100);
 	
 	printf("Calibrating and starting ADC at 1 MHz\r\n");
 	ADC_Calibrate();
-	LL_ADC_REG_StartConversion(ADC1);
 	
 	printf("Starting PLL\r\n");
 	InitPLL(FREQ_50M_DFREQ_10K);
@@ -35,7 +34,6 @@ void PlatformInit(void)
 
 	DelayMs(10);
 	printf("Adjusting PWM 1\r\n");
-	//HVPwmSetDuty(75);
 	AdjustHighVoltage();
 	
 	DelayMs(10);
@@ -215,7 +213,7 @@ void ParseUartCmd(void)
 
 uint32_t ADCGetAmplitude(void)
 {
-	const int CAPTURES_PER_TEST = 1000;
+	const int CAPTURES_PER_TEST = 200;
 	uint8_t dat[CAPTURES_PER_TEST];
 	int min = 100500, max = 0;
 	
@@ -231,7 +229,6 @@ uint32_t ADCGetAmplitude(void)
 	return max - min;
 }
 
-
 void AdjustHighVoltage(void)
 {
 	const int PWM_DUTY_MIN = 60;
@@ -245,7 +242,7 @@ void AdjustHighVoltage(void)
 	{
 		currentDuty = PWM_DUTY_MIN + i;
 		HVPwmSetDuty(currentDuty);
-		DelayMs(100);
+		DelayMs(20);
 		ampls[i] = ADCGetAmplitude();
 		printf("%d\r\n", ampls[i]);
 	}
@@ -285,29 +282,23 @@ void WTFSignal(void)
 
 void ADCDMATIM_Prepare(uint8_t* address, int size)
 {
-	// Setup DMA
+	LL_ADC_REG_StopConversion(ADC1);
 	LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)address);
-	LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)&(ADC1->DR));
+	LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)&(ADC1->DR) + 1);
 	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, size);
 	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
-	
-	// Setup TIM
-	LL_TIM_SetCounter(TIM1, 0);
 }
 
 void ADCDMATIM_Start(void)
 {
 	LL_ADC_REG_StartConversion(ADC1);
-	LL_TIM_EnableCounter(TIM1);
 }
 
 void ADCDMATIM_Stop(void)
 {
-	LL_TIM_DisableCounter(TIM1);
 	LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_1);
 	LL_DMA_ClearFlag_TC1(DMA1);
 	LL_ADC_REG_StopConversion(ADC1);
-
 }
 
 void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length)
@@ -317,7 +308,26 @@ void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length)
 	while(!GenVoltage());
 	while(GenVoltage());
 	ADCDMATIM_Start();
-	
+//	int count = 0;
+/*
+	if(arrGEN != NULL)
+	{
+		while(count < length)
+		{
+			
+			while(!LL_ADC_IsActiveFlag_EOC(ADC1))
+			{
+				__ASM("nop");
+			}
+			arrGEN[count++] = GenVoltage();
+			LL_ADC_ClearFlag_EOC(ADC1);
+			
+		}
+
+		for(count = 0; count < length; count++)
+			arrGEN[count] = arrGEN[count] ? 127 + 10 : 127 - 10;
+	}
+*/
 	while(!LL_DMA_IsActiveFlag_TC1(DMA1));
 	
 	ADCDMATIM_Stop();
