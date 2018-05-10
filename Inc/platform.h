@@ -32,7 +32,7 @@ typedef enum
 void ADCDMATIM_Prepare(uint8_t* address, int size);
 void ADCDMATIM_Start(void);
 void ADCDMATIM_Stop(void);
-void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length);
+void CaptureSignalDMA(uint8_t* arrADC, int length);
 void WTFSignal(void);
 
 void ADC_Calibrate(void);

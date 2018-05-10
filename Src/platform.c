@@ -38,9 +38,9 @@ void PlatformInit(void)
 	
 	DelayMs(10);
 	float angle = 0;
-	for(int i = 0; i < 1000; i++)
+	for(int i = 0; i < 10; i++)
 	{
-		angle += CalcPhaseFourier() / 1000;
+		angle += CalcPhaseFourier() / 10;
 	}
 	global_offset = angle;
 	
@@ -56,9 +56,9 @@ void PlatformInit(void)
 	
 	//printf("0 0\r\n0 360\r\n");
 	
-	DelayMs(100);
+	DelayMs(2000);
 
-	WTFSignal();
+//	WTFSignal();
 	
 	return;
 	
@@ -213,11 +213,11 @@ void ParseUartCmd(void)
 
 uint32_t ADCGetAmplitude(void)
 {
-	const int CAPTURES_PER_TEST = 200;
+	const int CAPTURES_PER_TEST = 500;
 	uint8_t dat[CAPTURES_PER_TEST];
 	int min = 100500, max = 0;
 	
-	CaptureSignals(dat, NULL, CAPTURES_PER_TEST);
+	CaptureSignalDMA(dat, CAPTURES_PER_TEST);
 	
 	for(int i = 0; i < CAPTURES_PER_TEST; i++)
 	{
@@ -231,7 +231,7 @@ uint32_t ADCGetAmplitude(void)
 
 void AdjustHighVoltage(void)
 {
-	const int PWM_DUTY_MIN = 60;
+	const int PWM_DUTY_MIN = 70;
 	const int PWM_DUTY_MAX = 100;
 	const int PWM_DUTY_DELTA = (PWM_DUTY_MAX - PWM_DUTY_MIN);
 
@@ -242,7 +242,7 @@ void AdjustHighVoltage(void)
 	{
 		currentDuty = PWM_DUTY_MIN + i;
 		HVPwmSetDuty(currentDuty);
-		DelayMs(20);
+		DelayMs(100);
 		ampls[i] = ADCGetAmplitude();
 		printf("%d\r\n", ampls[i]);
 	}
@@ -269,14 +269,13 @@ void ADC_Calibrate(void)
 
 void WTFSignal(void)
 {
-	const int DATALEN = 1000;
+	const int DATALEN = 2000;
 	uint8_t adcdata[DATALEN];
-	uint8_t gendata[DATALEN];
 	
-	CaptureSignals(adcdata, gendata, DATALEN);
+	CaptureSignalDMA(adcdata, DATALEN);
 	
-	for(int i = 0; i < 1000; i++)
-		printf("%d %d\r\n", adcdata[i], gendata[i]);
+	for(int i = 0; i < DATALEN; i++)
+		printf("%d\r\n", adcdata[i]);
 	
 }
 
@@ -301,37 +300,17 @@ void ADCDMATIM_Stop(void)
 	LL_ADC_REG_StopConversion(ADC1);
 }
 
-void CaptureSignals(uint8_t* arrADC, uint8_t* arrGEN, int length)
+void CaptureSignalDMA(uint8_t* arrADC, int length)
 {
 	ADCDMATIM_Prepare(arrADC, length);
 	
-	while(!GenVoltage());
 	while(GenVoltage());
+	while(!GenVoltage());
 	ADCDMATIM_Start();
-//	int count = 0;
-/*
-	if(arrGEN != NULL)
-	{
-		while(count < length)
-		{
-			
-			while(!LL_ADC_IsActiveFlag_EOC(ADC1))
-			{
-				__ASM("nop");
-			}
-			arrGEN[count++] = GenVoltage();
-			LL_ADC_ClearFlag_EOC(ADC1);
-			
-		}
 
-		for(count = 0; count < length; count++)
-			arrGEN[count] = arrGEN[count] ? 127 + 10 : 127 - 10;
-	}
-*/
 	while(!LL_DMA_IsActiveFlag_TC1(DMA1));
 	
 	ADCDMATIM_Stop();
-	
 }
 
 
@@ -339,12 +318,14 @@ float CalcPhaseFourier(void)
 {	
 	const int DATALEN = 1000;
 	uint8_t adcdata[DATALEN];
-	uint8_t gendata[DATALEN];
 	
-	CaptureSignals(adcdata, gendata, DATALEN);
-		
+	CaptureSignalDMA(adcdata, DATALEN);
+/*		
 	int Re = integrate(gendata, adcdata + 0 , DATALEN - 100);
 	int Im = integrate(gendata, adcdata + 25, DATALEN - 100);
+*/
+	int Re = integrateFunc(adcdata, fastSin, DATALEN);
+	int Im =-integrateFunc(adcdata, fastCos, DATALEN);
 	
 	float angle;
 	
