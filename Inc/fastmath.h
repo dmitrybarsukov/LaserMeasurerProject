@@ -16,4 +16,7 @@ int32_t integrate(uint8_t* data1, uint8_t* data2, uint32_t length);
 
 int32_t integrateFunc(uint8_t* data, int32_t (*f)(int32_t), uint32_t length);
 
+int32_t integrateAutoSin(uint8_t* data, uint32_t length);
+int32_t integrateAutoCos(uint8_t* data, uint32_t length);
+
 #endif // _FASTMATH_H

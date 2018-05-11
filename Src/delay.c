@@ -2,7 +2,7 @@
 #include "stm32f0xx_ll_system.h"
 #include "stdint.h"
 
-extern uint32_t SysTimeSeconds;
+extern volatile uint32_t SysTimeSeconds;
 
 void DelayMs(uint32_t t)
 {

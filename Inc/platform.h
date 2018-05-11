@@ -29,10 +29,14 @@ typedef enum
 	FREQ_50M_DFREQ_100K
 } PLL_Freq_t;
 
-void ADCDMATIM_Prepare(uint8_t* address, int size);
-void ADCDMATIM_Start(void);
-void ADCDMATIM_Stop(void);
-void CaptureSignalDMA(uint8_t* arrADC, int length);
+#define WAIT 1
+#define NOWAIT 0
+
+void ADCDMA_Prepare(uint8_t* address, int size);
+void ADCDMA_Start(void);
+void ADCDMA_Stop(void);
+void CaptureSignalDMA(uint8_t* arrADC, int length, int wait);
+void testCaptureData(void);
 void WTFSignal(void);
 
 void ADC_Calibrate(void);

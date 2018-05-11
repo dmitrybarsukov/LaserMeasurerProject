@@ -35,7 +35,11 @@
 #include "stm32f0xx_it.h"
 
 /* USER CODE BEGIN 0 */
-uint32_t SysTimeSeconds;
+volatile uint32_t SysTimeSeconds;
+volatile int INTcount;
+volatile int INTflagEnd;
+volatile int INTsamplesCount;
+volatile int INTflagStart;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -63,7 +67,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+	NVIC_SystemReset();
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -123,6 +127,43 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f0xx.s).                    */
 /******************************************************************************/
+
+/**
+* @brief This function handles EXTI line 4 to 15 interrupts.
+*/
+void EXTI4_15_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI4_15_IRQn 0 */
+
+  /* USER CODE END EXTI4_15_IRQn 0 */
+  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_9) != RESET)
+  {
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_9);
+    /* USER CODE BEGIN LL_EXTI_LINE_9 */
+    if(INTflagStart)
+	{
+		LL_ADC_REG_StartConversion(ADC1);
+		INTflagStart = 0;
+	}
+	else
+	{
+		INTcount--;
+		if(INTcount == 0)
+		{
+			INTsamplesCount = LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_1);
+			NVIC_DisableIRQ(EXTI4_15_IRQn);	
+			LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_1);
+			LL_DMA_ClearFlag_TC1(DMA1);
+			LL_ADC_REG_StopConversion(ADC1);
+			INTflagEnd = 1;
+		}
+	}
+    /* USER CODE END LL_EXTI_LINE_9 */
+  }
+  /* USER CODE BEGIN EXTI4_15_IRQn 1 */
+
+  /* USER CODE END EXTI4_15_IRQn 1 */
+}
 
 /**
 * @brief This function handles DMA1 channel 1 interrupt.

@@ -9,6 +9,14 @@
 int continousRun = 0;
 int pllmod = 1;
 int avg = 1;
+int HSI14calibValue = 0x10;
+int ADC_capture_size = 1000;
+
+
+extern volatile int INTcount;
+extern volatile int INTflagEnd;
+extern volatile int INTsamplesCount;
+extern volatile int INTflagStart;
 
 float global_offset;
 
@@ -56,10 +64,12 @@ void PlatformInit(void)
 	
 	//printf("0 0\r\n0 360\r\n");
 	
-	DelayMs(2000);
+	DelayMs(500);
 
 //	WTFSignal();
 	
+	
+
 	return;
 	
 }
@@ -74,7 +84,7 @@ void PlatformLoop(void)
 		{
 			LaserSelect(LASER_EXTERNAL);
 			angle += CalcPhaseFourier() / avg;
-			angle -= global_offset;
+			//angle -= global_offset;
 			if(angle < 0)
 				angle += 360;
 		}
@@ -87,6 +97,7 @@ void PlatformLoop(void)
 
 void InitPLL(PLL_Freq_t mod)
 {
+	NVIC_DisableIRQ(EXTI4_15_IRQn);
 	Si5351_ResetPLL();
 	
 	Si5351_SetLoadCap(SI5351_XTAL_LOAD_CAP_10pf);
@@ -204,6 +215,28 @@ void ParseUartCmd(void)
 				avg--;
 			printf("AVG = %d\r\n", avg);
 			break;
+		case '3':
+			HSI14calibValue++;
+			LL_RCC_HSI14_SetCalibTrimming(HSI14calibValue);
+			printf("Calibration value = %d      ", HSI14calibValue);
+			DelayUs(1000);
+			testCaptureData();
+			break;
+		case '4':
+			HSI14calibValue--;	
+			LL_RCC_HSI14_SetCalibTrimming(HSI14calibValue);
+			printf("Calibration value = %d      ", HSI14calibValue);
+			DelayUs(1000);
+			testCaptureData();
+			break;
+		case '5':
+			ADC_capture_size += 100;
+			printf("%d", ADC_capture_size);
+			break;
+		case '6':
+			ADC_capture_size -= 100;
+			printf("%d", ADC_capture_size);
+			break;
 		default:
 			printf("Err %c\r\n", ch);
 			break;
@@ -217,7 +250,7 @@ uint32_t ADCGetAmplitude(void)
 	uint8_t dat[CAPTURES_PER_TEST];
 	int min = 100500, max = 0;
 	
-	CaptureSignalDMA(dat, CAPTURES_PER_TEST);
+	CaptureSignalDMA(dat, CAPTURES_PER_TEST, WAIT);
 	
 	for(int i = 0; i < CAPTURES_PER_TEST; i++)
 	{
@@ -272,60 +305,74 @@ void WTFSignal(void)
 	const int DATALEN = 2000;
 	uint8_t adcdata[DATALEN];
 	
-	CaptureSignalDMA(adcdata, DATALEN);
+	CaptureSignalDMA(adcdata, DATALEN, WAIT);
 	
 	for(int i = 0; i < DATALEN; i++)
 		printf("%d\r\n", adcdata[i]);
 	
 }
 
-void ADCDMATIM_Prepare(uint8_t* address, int size)
+void ADCDMA_Prepare(uint8_t* address, int size)
 {
 	LL_ADC_REG_StopConversion(ADC1);
 	LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)address);
 	LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_1, (uint32_t)&(ADC1->DR) + 1);
 	LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, size);
 	LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_1);
+	INTflagStart = 1;
+	INTflagEnd = 0;
+	INTsamplesCount = 0;
 }
 
-void ADCDMATIM_Start(void)
+void ADCDMA_Start(void)
 {
-	LL_ADC_REG_StartConversion(ADC1);
+	//LL_ADC_REG_StartConversion(ADC1);
+	//while(GenVoltage());
+	while(!GenVoltage());
+	LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_9);
+	NVIC_EnableIRQ(EXTI4_15_IRQn);	
+	//LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_9);
 }
 
-void ADCDMATIM_Stop(void)
+void ADCDMA_Stop(void)
 {
 	LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_1);
 	LL_DMA_ClearFlag_TC1(DMA1);
 	LL_ADC_REG_StopConversion(ADC1);
 }
 
-void CaptureSignalDMA(uint8_t* arrADC, int length)
+void CaptureSignalDMA(uint8_t* arrADC, int length, int wait)
 {
-	ADCDMATIM_Prepare(arrADC, length);
+	ADCDMA_Prepare(arrADC, length);
+	INTcount = length / 100;
+	//while(GenVoltage());
+	//while(!GenVoltage());
+	ADCDMA_Start();
+	if(wait)
+		while(!INTflagEnd);
+	else
+		DelayUs(50);
+	//while(!LL_DMA_IsActiveFlag_TC1(DMA1));
 	
-	while(GenVoltage());
-	while(!GenVoltage());
-	ADCDMATIM_Start();
 
-	while(!LL_DMA_IsActiveFlag_TC1(DMA1));
 	
-	ADCDMATIM_Stop();
+	//ADCDMA_Stop();
 }
 
 
 float CalcPhaseFourier(void)
 {	
-	const int DATALEN = 1000;
-	uint8_t adcdata[DATALEN];
+	//const int DATALEN = 1000;
+	int DATALEN = ADC_capture_size;
+	uint8_t adcdata[2050];
 	
-	CaptureSignalDMA(adcdata, DATALEN);
-/*		
-	int Re = integrate(gendata, adcdata + 0 , DATALEN - 100);
-	int Im = integrate(gendata, adcdata + 25, DATALEN - 100);
+	CaptureSignalDMA(adcdata, DATALEN, WAIT);
+/*
+	int Re =  integrateFunc(adcdata, fastSin, DATALEN);
+	int Im = -integrateFunc(adcdata, fastCos, DATALEN);
 */
-	int Re = integrateFunc(adcdata, fastSin, DATALEN);
-	int Im =-integrateFunc(adcdata, fastCos, DATALEN);
+	int Re =  integrateAutoSin(adcdata, DATALEN);
+	int Im = -integrateAutoCos(adcdata, DATALEN);
 	
 	float angle;
 	
@@ -340,4 +387,24 @@ float CalcPhaseFourier(void)
 	
 	//printf("%.2f\r\n", angle);
 	return angle;
+}
+
+void testCaptureData(void)
+{
+	const int ARRSIZE = 2100;
+	uint8_t data[ARRSIZE];
+	ADCDMA_Prepare(data, ARRSIZE);
+	INTcount = 20;
+	//while(GenVoltage());
+	//while(!GenVoltage());
+//	printf("Capturing %d Periods\r\n", INTcount);
+	ADCDMA_Start();
+	//while(!LL_DMA_IsActiveFlag_TC1(DMA1));
+	
+	while(!INTflagEnd);
+	printf("Captured %d samples\r\n", ARRSIZE - INTsamplesCount);
+/*	
+	for(int i = 0; i < ARRSIZE - INTsamplesCount; i++)
+		printf("%d\r\n", data[i]);
+*/
 }

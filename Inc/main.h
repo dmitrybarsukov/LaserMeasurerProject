@@ -90,8 +90,9 @@
 #define LCD3_GPIO_Port GPIOB
 #define LCD4_Pin LL_GPIO_PIN_13
 #define LCD4_GPIO_Port GPIOB
-#define CKLIN_Pin LL_GPIO_PIN_8
+#define CKLIN_Pin LL_GPIO_PIN_9
 #define CKLIN_GPIO_Port GPIOA
+#define CKLIN_EXTI_IRQn EXTI4_15_IRQn
 #define LaserEnable_Pin LL_GPIO_PIN_10
 #define LaserEnable_GPIO_Port GPIOA
 #define SCL_Pin LL_GPIO_PIN_11
