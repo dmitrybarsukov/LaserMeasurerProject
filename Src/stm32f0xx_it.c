@@ -40,6 +40,7 @@ volatile int INTcount;
 volatile int INTflagEnd;
 volatile int INTsamplesCount;
 volatile int INTflagStart;
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -136,10 +137,10 @@ void EXTI4_15_IRQHandler(void)
   /* USER CODE BEGIN EXTI4_15_IRQn 0 */
 
   /* USER CODE END EXTI4_15_IRQn 0 */
-  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_9) != RESET)
+  if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_8) != RESET)
   {
-    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_9);
-    /* USER CODE BEGIN LL_EXTI_LINE_9 */
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_8);
+    /* USER CODE BEGIN LL_EXTI_LINE_8 */
     if(INTflagStart)
 	{
 		LL_ADC_REG_StartConversion(ADC1);
@@ -158,7 +159,7 @@ void EXTI4_15_IRQHandler(void)
 			INTflagEnd = 1;
 		}
 	}
-    /* USER CODE END LL_EXTI_LINE_9 */
+    /* USER CODE END LL_EXTI_LINE_8 */
   }
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
 

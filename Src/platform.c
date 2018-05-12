@@ -237,6 +237,12 @@ void ParseUartCmd(void)
 			ADC_capture_size -= 100;
 			printf("%d", ADC_capture_size);
 			break;
+		case '7':
+			LaserPower(LASER_POWER_HIGH);
+			break;
+		case '8':
+			LaserPower(LASER_POWER_LOW);
+			break;
 		default:
 			printf("Err %c\r\n", ch);
 			break;

@@ -203,8 +203,6 @@ void SystemClock_Config(void)
 
   LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK1);
 
-  LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_HSI14, LL_RCC_MCO1_DIV_1);
-
   /* SysTick_IRQn interrupt configuration */
   NVIC_SetPriority(SysTick_IRQn, 0);
 }
@@ -396,13 +394,12 @@ static void MX_DMA_Init(void)
         * EVENT_OUT
         * EXTI
      PA4   ------> SharedAnalog_PA4
-     PA8   ------> RCC_MCO
 */
 static void MX_GPIO_Init(void)
 {
 
-  LL_GPIO_InitTypeDef GPIO_InitStruct;
   LL_EXTI_InitTypeDef EXTI_InitStruct;
+  LL_GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
@@ -530,15 +527,6 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(LCD4_GPIO_Port, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_8;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /**/
   GPIO_InitStruct.Pin = LaserEnable_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
@@ -583,7 +571,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(KeyboardInput1_GPIO_Port, &GPIO_InitStruct);
 
   /**/
-  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE9);
+  LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE8);
 
   /**/
   LL_GPIO_SetPinPull(CKLIN_GPIO_Port, CKLIN_Pin, LL_GPIO_PULL_NO);
@@ -592,7 +580,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_SetPinMode(CKLIN_GPIO_Port, CKLIN_Pin, LL_GPIO_MODE_INPUT);
 
   /**/
-  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_9;
+  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
   EXTI_InitStruct.LineCommand = ENABLE;
   EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
   EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_RISING;
@@ -600,7 +588,7 @@ static void MX_GPIO_Init(void)
 
   /* EXTI interrupt init*/
   NVIC_SetPriority(EXTI4_15_IRQn, 0);
-  //NVIC_EnableIRQ(EXTI4_15_IRQn);
+  NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 }
 
